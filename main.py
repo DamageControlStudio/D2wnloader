@@ -10,6 +10,7 @@ import sys
 # 在手机上跑 Pythonista ，引入 clipboard 比较方便
 # import clipboard
 
+# 不看https警告
 requests.packages.urllib3.disable_warnings()
 
 class Downloader:
@@ -40,7 +41,7 @@ class Downloader:
         self.downloaded_time = []
         # 显示基本信息
         readable_size = self.get_readable_size(self.file_size)
-        print("---------- UTOPIA Downloader ----------\n[url] %s\n[path] %s\n[size] %s" %
+        sys.stdout.write("---------- UTOPIA Downloader ----------\n[url] %s\n[path] %s\t[size] %s\n" %
               (self.url, self.download_dir + self.filename, readable_size))
 
     def get_size(self):
@@ -82,14 +83,14 @@ class Downloader:
 
     def download(self, start, end, event_num):
         cache_filename = self.cache_dir + self.filename + ".part" + str(event_num)
-        total_size = end - start + 1
+        total_size = end - start
         if os.path.exists(cache_filename):
             now_size = os.path.getsize(cache_filename)
         else:
             now_size = 0
-        if now_size < total_size:
+        if total_size - now_size > 0:
             headers = {'Range': 'Bytes=%d-%s' % (now_size+int(start), end), 'Accept-Encoding': '*'}
-            print("[part%d]: from %d to %s" % (event_num, now_size+int(start), end))
+            sys.stdout.write("[part%d]: from %d to %s\n" % (event_num, now_size+int(start), end))
             req = requests.get(self.url, stream=True, verify=False, headers=headers)
             with open(cache_filename, "ab") as cache:
                 for chunk in req.iter_content(chunk_size=4096):
@@ -119,19 +120,24 @@ class Downloader:
             if not t == 0:
                 speed = s/1024/t
                 percentage = self.downloaded_size[-1] / self.file_size * 100
-                sys.stdout.write("\r[status] %.2f%% @ %.2fKB/s" % (percentage, speed))
+                sys.stdout.write("\r[status] %.2f%% @ %.2fKB/s          " % (percentage, speed))
+                sys.stdout.flush()
             time.sleep(1)
-        sys.stdout.write("\r[status] 100%\n")
+        sys.stdout.write("\r[status] the Beatles: all together now\n")
+        sys.stdout.flush()
 
     def sew_together(self):
         # 进入缝合阶段说明下载完成，因为之前一步有 .join() 卡着
         self.done = True
-        with open(self.download_dir + self.filename, "ab") as file:
+        full_filename = self.download_dir + self.filename
+        if os.path.exists(full_filename):
+            os.remove(full_filename)
+        with open(full_filename, "ab") as file:
             for i in range(self.blocks_num):
                 cache_filename = self.cache_dir + self.filename + ".part" + str(i)
                 with open(cache_filename, "rb") as part:
                     file.write(part.read())
-        print("the Beatles: all together now\nDownload complete.")
+        sys.stdout.write("[SHA-256] %s\nDownload complete.\n" % self.sha256())
 
     def sha256(self):
         full_filename = self.download_dir+self.filename
@@ -149,6 +155,6 @@ if __name__ == "__main__":
     #     d = Downloader(url)
     #     d.start()
 
-    url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
-    d = Downloader(url, blocks_num=5)
+    url = "https://downloads.raspberrypi.org/raspbian_lite_latest"
+    d = Downloader(url)
     d.start()
