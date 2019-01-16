@@ -90,7 +90,7 @@ class Downloader:
             now_size = 0
         if total_size - now_size > 0:
             headers = {'Range': 'Bytes=%d-%s' % (now_size+int(start), end), 'Accept-Encoding': '*'}
-            sys.stdout.write("[part%d]: from %d to %s\n" % (event_num, now_size+int(start), end))
+            sys.stdout.write("[part%d] from %d to %s\n" % (event_num, now_size+int(start), end))
             req = requests.get(self.url, stream=True, verify=False, headers=headers)
             with open(cache_filename, "ab") as cache:
                 for chunk in req.iter_content(chunk_size=4096):
