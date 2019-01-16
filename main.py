@@ -82,7 +82,7 @@ class Downloader:
         self.sew_together()
 
     def download(self, start, end, event_num):
-        cache_filename = self.cache_dir + self.filename + ".part" + str(event_num)
+        cache_filename = self.cache_dir + self.filename + ".part_" + str(event_num) + "_" + str(self.blocks_num)
         total_size = end - start + 1
         if os.path.exists(cache_filename):
             now_size = os.path.getsize(cache_filename)
@@ -101,7 +101,7 @@ class Downloader:
     def calculate_download_speed(self):
         # 开始统计文件大小，计时，并计算速度
         lag_count = 5 # 计算过去 lag_count 次测量的平均速度
-        file_list = [self.cache_dir + self.filename + ".part" + str(i) for i in range(self.blocks_num)]
+        file_list = [self.cache_dir + self.filename + ".part_" + str(i) + "_" + str(self.blocks_num) for i in range(self.blocks_num)]
         while not self.done:
             dwn_size = 0
             for f in file_list:
@@ -134,7 +134,7 @@ class Downloader:
             os.remove(full_filename)
         with open(full_filename, "ab") as file:
             for i in range(self.blocks_num):
-                cache_filename = self.cache_dir + self.filename + ".part" + str(i)
+                cache_filename = self.cache_dir + self.filename + ".part_" + str(i) + "_" + str(self.blocks_num)
                 with open(cache_filename, "rb") as part:
                     file.write(part.read())
         sys.stdout.write("[SHA-256] %s\nDownload complete.\n" % self.sha256())
@@ -155,6 +155,6 @@ if __name__ == "__main__":
     #     d = Downloader(url)
     #     d.start()
 
-    url = "https://downloads.raspberrypi.org/raspbian_lite_latest"
+    url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
     d = Downloader(url)
     d.start()
