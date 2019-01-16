@@ -62,7 +62,7 @@ class Downloader:
         offset = int(self.file_size / self.blocks_num)
         for i in range(self.blocks_num):
             if i == self.blocks_num - 1:
-                ranges.append((i * offset, self.file_size))
+                ranges.append((i * offset, self.file_size - 1))
             else:
                 ranges.append((i * offset, (i + 1) * offset - 1))
         return ranges
@@ -83,7 +83,7 @@ class Downloader:
 
     def download(self, start, end, event_num):
         cache_filename = self.cache_dir + self.filename + ".part" + str(event_num)
-        total_size = end - start
+        total_size = end - start + 1
         if os.path.exists(cache_filename):
             now_size = os.path.getsize(cache_filename)
         else:
