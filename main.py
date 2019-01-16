@@ -100,7 +100,7 @@ class Downloader:
 
     def calculate_download_speed(self):
         # 开始统计文件大小，计时，并计算速度
-        lag_count = 5 # 计算过去 lag_count 次测量的平均速度
+        lag_count = 10 # 计算过去 lag_count 次测量的平均速度
         file_list = [self.cache_dir + self.filename + ".part_" + str(i) + "_" + str(self.blocks_num) for i in range(self.blocks_num)]
         while not self.done:
             dwn_size = 0
