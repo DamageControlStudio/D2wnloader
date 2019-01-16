@@ -158,3 +158,5 @@ if __name__ == "__main__":
     url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
     d = Downloader(url)
     d.start()
+
+    
