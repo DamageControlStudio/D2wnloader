@@ -7,8 +7,11 @@ import os
 import hashlib
 import time
 import sys
-# 在手机上跑 Pythonista ，引入 clipboard 比较方便
+# 在手机上跑 Pythonista 引入 clipboard 比较方便
 # import clipboard
+
+# 最大尝试次数
+MAX_RETRY_TIMES = 5
 
 # 不看https警告
 requests.packages.urllib3.disable_warnings()
@@ -21,6 +24,7 @@ class Downloader:
         self.filename = filename
         self.download_dir = download_dir
         self.blocks_num = blocks_num
+        self.retry_times = 0
         # 建立下载目录
         if not os.path.exists(self.download_dir):
             os.mkdir(self.download_dir)
@@ -50,12 +54,13 @@ class Downloader:
             return int(content_length)
 
     def get_readable_size(self, size):
-        units = ["Byte", "KB", "MB", "GB", "TB", "PB"]
+        units = ["B", "KB", "MB", "GB", "TB", "PB"]
         unit_index = 0
-        while size >= 1024:
-            size = size / 1024
+        K = 1024.0
+        while size >= K:
+            size = size / K
             unit_index += 1
-        return "%.2f %s" % (size, units[unit_index])
+        return "%.1f %s" % (size, units[unit_index])
 
     def get_ranges(self):
         ranges = []
@@ -68,18 +73,21 @@ class Downloader:
         return ranges
 
     def start(self):
-        thread_arr = []
-        n = 0
-        for (start, end) in self.get_ranges():
-            thread = threading.Thread(target=self.download, args=(start, end, n))
-            thread_arr.append(thread)
-            thread.start()
-            n += 1
-        speed_thread = threading.Thread(target=self.calculate_download_speed, args=())
-        speed_thread.start()
-        for t in thread_arr:
-            t.join()
-        self.sew_together()
+        if self.retry_times <= MAX_RETRY_TIMES:
+            thread_arr = []
+            n = 0
+            for (start, end) in self.get_ranges():
+                thread = threading.Thread(target=self.download, args=(start, end, n))
+                thread_arr.append(thread)
+                thread.start()
+                n += 1
+            speed_thread = threading.Thread(target=self.calculate_download_speed, args=())
+            speed_thread.start()
+            for t in thread_arr:
+                t.join()
+            self.sew_together()
+        else:
+            sys.stdout.write("I tried, now, tired\n")
 
     def download(self, start, end, event_num):
         cache_filename = self.cache_dir + self.filename + ".part_" + str(event_num) + "_" + str(self.blocks_num)
@@ -123,21 +131,33 @@ class Downloader:
                 sys.stdout.write("\r[status] %.2f%% @ %.2fKB/s          " % (percentage, speed))
                 sys.stdout.flush()
             time.sleep(1)
-        sys.stdout.write("\r[status] the Beatles: all together now\n")
+        # sys.stdout.write("\r[status] the Beatles: all together now\n")
         sys.stdout.flush()
 
     def sew_together(self):
         # 进入缝合阶段说明下载完成，因为之前一步有 .join() 卡着
+        complete_flag = True # 用于标记最后是否计算 SHA-256
         self.done = True
         full_filename = self.download_dir + self.filename
         if os.path.exists(full_filename):
             os.remove(full_filename)
+        ranges = self.get_ranges()
         with open(full_filename, "ab") as file:
             for i in range(self.blocks_num):
                 cache_filename = self.cache_dir + self.filename + ".part_" + str(i) + "_" + str(self.blocks_num)
+                start, end = ranges[i]
+                tiger = end - start + 1 # 理想
+                cat = os.path.getsize(cache_filename) # 现实
+                if cat != tiger: # 照猫画虎：画的不一样
+                    sys.stdout.write("\r[status] oops... retry now\n")
+                    complete_flag = False
+                    self.retry_times += 1
+                    self.start()
+                    break
                 with open(cache_filename, "rb") as part:
                     file.write(part.read())
-        sys.stdout.write("[SHA-256] %s\nDownload complete.\n" % self.sha256())
+        if complete_flag:
+            sys.stdout.write("\r[SHA-256] %s\nDownload complete.\n" % self.sha256())
 
     def sha256(self):
         full_filename = self.download_dir+self.filename
