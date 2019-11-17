@@ -10,20 +10,18 @@ import sys
 # 在手机上跑 Pythonista 引入 clipboard 比较方便
 # import clipboard
 
-# 最大尝试次数
-MAX_RETRY_TIMES = 5
-
 # 不看https警告
 requests.packages.urllib3.disable_warnings()
 
 class Downloader:
-    def __init__(self, url, download_dir="./", blocks_num=5):
+    def __init__(self, url, download_dir="./", blocks_num=5, max_retry_times=5):
         self.url = url
         filename = self.url.split("/")[-1]
         filename = parse.unquote(filename)
         self.filename = filename
         self.download_dir = download_dir
         self.blocks_num = blocks_num
+        self.max_retry_times = max_retry_times
         self.retry_times = 0
         # 建立下载目录
         if not os.path.exists(self.download_dir):
@@ -73,7 +71,7 @@ class Downloader:
         return ranges
 
     def start(self):
-        if self.retry_times <= MAX_RETRY_TIMES:
+        if self.retry_times <= self.max_retry_times:
             thread_arr = []
             n = 0
             for (start, end) in self.get_ranges():
