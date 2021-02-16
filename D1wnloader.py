@@ -1,6 +1,7 @@
 # coding: utf-8
 from urllib import request
 from urllib import parse
+import urllib3
 import requests
 import threading
 import os
@@ -11,7 +12,7 @@ import sys
 # import clipboard
 
 # 不看https警告
-requests.packages.urllib3.disable_warnings()
+urllib3.disable_warnings()
 
 class Downloader:
     def __init__(self, url, download_dir="./", blocks_num=5, max_retry_times=5):
@@ -43,7 +44,7 @@ class Downloader:
         self.downloaded_time = []
         # 显示基本信息
         readable_size = self.get_readable_size(self.file_size)
-        sys.stdout.write("---------- UTOPIA Downloader ----------\n[url] %s\n[path] %s\t[size] %s\n" %
+        sys.stdout.write("----- D1wnloader [v1.0] -----\n[url] %s\n[path] %s\t[size] %s\n" %
               (self.url, self.download_dir + self.filename, readable_size))
 
     def get_size(self):
