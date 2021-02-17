@@ -44,8 +44,8 @@ class Downloader:
         self.downloaded_time = []
         # 显示基本信息
         readable_size = self.get_readable_size(self.file_size)
-        sys.stdout.write("----- D1wnloader [v1.0] -----\n[url] %s\n[path] %s\t[size] %s\n" %
-              (self.url, self.download_dir + self.filename, readable_size))
+        sys.stdout.write("----- D1wnloader [v1.0] -----\n[url] %s\n[path] %s\t[size] %s\n" % 
+                        (self.url, self.download_dir + self.filename, readable_size))
 
     def get_size(self):
         with request.urlopen(self.url) as req:
