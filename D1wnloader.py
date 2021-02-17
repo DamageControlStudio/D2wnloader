@@ -11,7 +11,7 @@ import sys
 # 在手机上跑 Pythonista 引入 clipboard 比较方便
 # import clipboard
 
-# 不看https警告
+# 忽略警告
 urllib3.disable_warnings()
 
 class D1wnloader:
@@ -168,11 +168,6 @@ class D1wnloader:
 
 
 if __name__ == "__main__":
-    # url = clipboard.get()
-    # 剪贴板里什么都有，所以最好先判断一下 :-)
-    # if url.startswith('http'):
-    #     d = Downloader(url)
-    #     d.start()
     url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
     d = D1wnloader(url)
     d.start()
