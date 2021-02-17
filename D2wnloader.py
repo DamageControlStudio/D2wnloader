@@ -57,7 +57,7 @@ class DLWorker:
         return _progress
 
 class D2wnloader:
-    def __init__(self, url:str, download_dir:str=f".{os.sep}", blocks_num:int=3):
+    def __init__(self, url:str, download_dir:str=f".{os.sep}", blocks_num:int=8):
         assert 0 <= blocks_num <= 32
         self.url = url
         filename = self.url.split("/")[-1]

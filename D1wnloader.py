@@ -14,7 +14,7 @@ import sys
 # 不看https警告
 urllib3.disable_warnings()
 
-class Downloader:
+class D1wnloader:
     def __init__(self, url, download_dir="./", blocks_num=5, max_retry_times=5):
         self.url = url
         filename = self.url.split("/")[-1]
@@ -173,9 +173,6 @@ if __name__ == "__main__":
     # if url.startswith('http'):
     #     d = Downloader(url)
     #     d.start()
-
     url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
-    d = Downloader(url)
+    d = D1wnloader(url)
     d.start()
-
-    
