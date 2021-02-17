@@ -264,7 +264,7 @@ class D2wnloader:
             if not t == 0:
                 speed = self.__get_readable_size(s/t)
                 percentage = self.__download_record[-1]["size"] / self.file_size * 100
-                status_msg = f"\r[ {percentage:.1f}% | {speed}/s | w{len(self.workers)}t{(time.time()-self.startdlsince):.0f} ]          "
+                status_msg = f"\r[ {percentage:.1f}% | {speed}/s | w {len(self.workers)} t {(time.time()-self.startdlsince):.0f} ]          "
                 sys.stdout.write(status_msg)
             time.sleep(refresh_interval)
 
@@ -281,7 +281,7 @@ class D2wnloader:
                         data = cache_file.read(readchunksize)
         self.clear()
         self.__done.set()
-        sys.stdout.write(f"\n[md5] {self.md5()}\n[status] D2wnloaded\n")
+        sys.stdout.write(f"\n[status] D2wnloaded\n")
     
     def md5(self):
         filename = f"{self.download_dir}{self.filename}"
