@@ -3,6 +3,7 @@ import threading, time
 from urllib import request, parse
 import requests
 import os, sys, glob
+import hashlib
 
 class DLWorker:
     def __init__(self, name:str, url:str, range_start, range_end, cache_dir, finish_callback):
@@ -280,7 +281,12 @@ class D2wnloader:
                         data = cache_file.read(readchunksize)
         self.clear()
         self.__done.set()
-        sys.stdout.write("\n[status] D2wnloaded\n")
+        sys.stdout.write(f"\n[md5] {self.md5()}\n[status] D2wnloaded\n")
+    
+    def md5(self):
+        filename = f"{self.download_dir}{self.filename}"
+        with open(filename, "rb") as f:
+            return hashlib.md5(f.read()).hexdigest()
 
     def clear(self, all_cache=False):
         if all_cache: # TODO 需要交互提醒即将删除的文件夹 [Y]/N 确认。由于不安全，先不打算实现。
@@ -292,5 +298,5 @@ class D2wnloader:
 if __name__ == "__main__":
     url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
     # url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
-    d2l = D2wnloader(url)
+    d2l = D2wnloader(url, blocks_num=5)
     d2l.start()
