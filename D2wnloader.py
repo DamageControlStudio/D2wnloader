@@ -57,7 +57,7 @@ class DLWorker:
         return _progress
 
 class D2wnloader:
-    def __init__(self, url:str, download_dir:str=f".{os.sep}", blocks_num:int=5):
+    def __init__(self, url:str, download_dir:str=f".{os.sep}", blocks_num:int=3):
         assert 0 <= blocks_num <= 32
         self.url = url
         filename = self.url.split("/")[-1]
@@ -90,7 +90,7 @@ class D2wnloader:
         # 显示基本信息
         readable_size = self.__get_readable_size(self.file_size)
         pathfilename = self.download_dir + self.filename
-        sys.stdout.write(f"----- D2wnloader [v2.0.b5] -----\n[url] {self.url}\n[file] {pathfilename}\n[size] {readable_size}\n")
+        sys.stdout.write(f"----- D2wnloader [v2.0.b5] -----\n[url] {self.url}\n[path] {pathfilename}\n[size] {readable_size}\n")
     
     def __get_size(self):
         with request.urlopen(self.url) as req:
@@ -264,7 +264,7 @@ class D2wnloader:
             if not t == 0:
                 speed = self.__get_readable_size(s/t)
                 percentage = self.__download_record[-1]["size"] / self.file_size * 100
-                status_msg = f"\r[speed] {percentage:.1f}% | {speed}/s | w {len(self.workers)} t {(time.time()-self.startdlsince):.0f}          "
+                status_msg = f"\r[ {percentage:.1f}% | {speed}/s | w{len(self.workers)}t{(time.time()-self.startdlsince):.0f} ]          "
                 sys.stdout.write(status_msg)
             time.sleep(refresh_interval)
 
@@ -298,5 +298,5 @@ class D2wnloader:
 if __name__ == "__main__":
     url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
     # url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
-    d2l = D2wnloader(url, blocks_num=5)
+    d2l = D2wnloader(url)
     d2l.start()
