@@ -223,7 +223,7 @@ class D2wnloader:
             self.__give_back_work(worker)
         # 下载齐全，开始组装
         if self.workers == [] and self.__get_AAEK_from_cache() == []:
-            self.__sew_together()
+            self.__sew()
 
     def start(self):
         # TODO 尝试整理缓存文件夹内的相关文件
@@ -282,25 +282,31 @@ class D2wnloader:
                     wait_times -= 1
             time.sleep(REFRESH_INTERVAL)
 
-    def __sew_together(self):
-        readchunksize = 10*1024*1024
+    def __sew(self):
+        chunk_size = 10*1024*1024
         with open(f"{self.download_dir}{self.filename}", "wb") as f:
             for start, _ in self.__get_ranges_from_cache():
                 cache_filename = f"{self.cache_dir}{self.filename}.{start}.d2l"
                 with open(cache_filename, "rb") as cache_file:
-                    data = cache_file.read(readchunksize)
+                    data = cache_file.read(chunk_size)
                     while data:
                         f.write(data)
                         f.flush()
-                        data = cache_file.read(readchunksize)
+                        data = cache_file.read(chunk_size)
         self.clear()
         self.__done.set()
-        sys.stdout.write(f"\n[info] D2wnloaded\n")
+        sys.stdout.write(f"\n[md5] {self.md5()}\n[info] D2wnloaded\n")
     
     def md5(self):
+        chunk_size = 1024*1024
         filename = f"{self.download_dir}{self.filename}"
+        md5 = hashlib.md5()
         with open(filename, "rb") as f:
-            return hashlib.md5(f.read()).hexdigest()
+            data = f.read(chunk_size)
+            while data:
+                md5.update(data)
+                data = f.read(chunk_size)
+        return md5.hexdigest()
 
     def clear(self, all_cache=False):
         if all_cache: # TODO 需要交互提醒即将删除的文件夹 [Y]/N 确认。由于不安全，先不打算实现。
@@ -310,7 +316,7 @@ class D2wnloader:
                 os.remove(filename)
 
 if __name__ == "__main__":
-    # url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
-    url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
+    url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
+    # url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
     d2l = D2wnloader(url)
     d2l.start()
