@@ -272,8 +272,8 @@ class D2wnloader:
                 sys.stdout.write(status_msg)
                 # 监测下载速度下降
                 maxspeed = max(maxspeed, speed)
-                # 当满足：该监测了 + 速度下降百分比达到了阈值 + 速度低于 1 MB/s
-                if wait_times < 0 and (maxspeed - speed) / maxspeed > SPEED_DEGRADATION_PERCENTAGE and speed < 1024*1024:
+                # 当满足：该监测了 + 未完成 + 速度下降百分比达到了阈值 + 速度低于 1 MB/s
+                if wait_times < 0 and not self.__done.is_set() and (maxspeed - speed) / maxspeed > SPEED_DEGRADATION_PERCENTAGE and speed < 1024*1024:
                     sys.stdout.write("\n[info] Speed degradation is detected\n[TODO] Restarting, please wait...\n")
                     self.restart()
                     maxspeed = 0
@@ -316,7 +316,8 @@ class D2wnloader:
                 os.remove(filename)
 
 if __name__ == "__main__":
-    url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
     # url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
+    url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
+    # url = "https://github.com/mozilla/geckodriver/releases/download/v0.29.0/geckodriver-v0.29.0-linux64.tar.gz"
     d2l = D2wnloader(url)
     d2l.start()
