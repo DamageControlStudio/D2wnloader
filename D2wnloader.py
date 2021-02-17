@@ -18,7 +18,7 @@ class DLWorker:
         self.FINISH_TYPE = "" # DONE 完成工作, HELP 需要帮忙, RETIRE 不干了
 
     def __run(self):
-        chunk_size = 1*1024
+        chunk_size = 1*1024 # 1 kb
         headers = {'Range': f'Bytes={self.range_curser}-{self.range_end}', 'Accept-Encoding': '*'}
         req = requests.get(self.url, stream=True, headers=headers)
         with open(self.cache_filename, "wb") as cache:
@@ -90,7 +90,7 @@ class D2wnloader:
         # 显示基本信息
         readable_size = self.__get_readable_size(self.file_size)
         pathfilename = self.download_dir + self.filename
-        sys.stdout.write(f"----- D2wnloader [v2.0.b5] -----\n[url] {self.url}\n[path] {pathfilename}\n[size] {readable_size}\n")
+        sys.stdout.write(f"----- D2wnloader [v2.0.b6] -----\n[url] {self.url}\n[path] {pathfilename}\n[size] {readable_size}\n")
     
     def __get_size(self):
         with request.urlopen(self.url) as req:
@@ -250,23 +250,37 @@ class D2wnloader:
 
     def __supervise(self):
         """万恶的督导：监视下载速度、进程数；提出整改意见；"""
-        refresh_interval = 1
+        REFRESH_INTERVAL = 1 # 每多久输出一次监视状态
+        LAG_COUNT = 10 # 计算过去多少次测量的平均速度
+        WAIT_TIMES_BEFORE_RESTART = 30 # 乘以时间就是等待多久执行一次 restart
+        SPEED_DEGRADATION_PERCENTAGE = 0.5 # 速度下降百分比
         self.__download_record = []
-        lag_count = 10 # 计算过去 lag_count 次测量的平均速度
+        maxspeed = 0
+        wait_times = WAIT_TIMES_BEFORE_RESTART
         while not self.__done.is_set():
             dwn_size = sum([os.path.getsize(cachefile) for cachefile in self.__get_cache_filenames()])
             self.__download_record.append({"timestamp": time.time(), "size": dwn_size})
-            if len(self.__download_record) > lag_count:
+            if len(self.__download_record) > LAG_COUNT:
                 self.__download_record.pop(0)
             s = self.__download_record[-1]["size"] - self.__download_record[0]["size"]
             t = self.__download_record[-1]["timestamp"] - self.__download_record[0]["timestamp"]
-            # if not t == 0 and not self.__done.is_set():
             if not t == 0:
-                speed = self.__get_readable_size(s/t)
+                speed = s / t
+                readable_speed = self.__get_readable_size(speed) # 变成方便阅读的样式
                 percentage = self.__download_record[-1]["size"] / self.file_size * 100
-                status_msg = f"\r[ {percentage:.1f}% | {speed}/s | w {len(self.workers)} t {(time.time()-self.startdlsince):.0f} ]          "
+                status_msg = f"\r[info] {percentage:.1f} % | {readable_speed}/s | {len(self.workers)}/{threading.active_count()} {(time.time()-self.startdlsince):.0f}s          "
                 sys.stdout.write(status_msg)
-            time.sleep(refresh_interval)
+                # 监测下载速度下降
+                maxspeed = max(maxspeed, speed)
+                # 当满足：该监测了 + 速度下降百分比达到了阈值 + 速度低于 1 MB/s
+                if wait_times < 0 and (maxspeed - speed) / maxspeed > SPEED_DEGRADATION_PERCENTAGE and speed < 1024*1024:
+                    sys.stdout.write("\n[info] Speed degradation is detected\n[TODO] Restarting, please wait...\n")
+                    self.restart()
+                    maxspeed = 0
+                    wait_times = WAIT_TIMES_BEFORE_RESTART
+                else:
+                    wait_times -= 1
+            time.sleep(REFRESH_INTERVAL)
 
     def __sew_together(self):
         readchunksize = 10*1024*1024
@@ -281,7 +295,7 @@ class D2wnloader:
                         data = cache_file.read(readchunksize)
         self.clear()
         self.__done.set()
-        sys.stdout.write(f"\n[status] D2wnloaded\n")
+        sys.stdout.write(f"\n[info] D2wnloaded\n")
     
     def md5(self):
         filename = f"{self.download_dir}{self.filename}"
@@ -296,7 +310,7 @@ class D2wnloader:
                 os.remove(filename)
 
 if __name__ == "__main__":
-    url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
-    # url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
+    # url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
+    url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
     d2l = D2wnloader(url)
     d2l.start()
