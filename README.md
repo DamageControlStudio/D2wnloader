@@ -1,4 +1,4 @@
-# UTOPIA-Downloader
+# D2wnloader
 
 **Python** **多线程下载** **分块下载** **断点续传**
 
@@ -8,9 +8,15 @@
 
 ## D1wnloader
 
-也就是原来目录中的 main.py  
+也就是原来 UTOPIA-Downloader 中的 main.py  
 
 ## D2wnloader
+
+更新原因是增加了以下需求：
+
+- 经常越下越慢，希望速度下降时能自动重建连接重振雄风
+- 需要让已完成任务的进程能够去分担还没完成的部分
+- 需要一个可随时改变的分块算法
 
 ### 设计思路
 
