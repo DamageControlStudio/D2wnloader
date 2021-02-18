@@ -1,4 +1,6 @@
 .DS_Store
 .vscode/*
+.d2lcache/*
+d2l/*
 *.d2l
 *.pyc

@@ -57,7 +57,7 @@ class DLWorker:
         return _progress
 
 class D2wnloader:
-    def __init__(self, url:str, download_dir:str=f".{os.sep}", blocks_num:int=8):
+    def __init__(self, url:str, download_dir:str=f".{os.sep}d2l{os.sep}", blocks_num:int=8):
         assert 0 <= blocks_num <= 32
         self.url = url
         filename = self.url.split("/")[-1]
@@ -72,7 +72,7 @@ class D2wnloader:
             os.remove(self.download_dir)
             os.mkdir(self.download_dir)
         # 建立缓存目录
-        self.cache_dir = f".{os.sep}cache{os.sep}"
+        self.cache_dir = f".{os.sep}.d2lcache{os.sep}"
         if not os.path.exists(self.cache_dir):
             os.mkdir(self.cache_dir)
         elif os.path.isfile(self.cache_dir):
@@ -318,6 +318,5 @@ class D2wnloader:
 if __name__ == "__main__":
     # url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
     url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
-    # url = "https://github.com/mozilla/geckodriver/releases/download/v0.29.0/geckodriver-v0.29.0-linux64.tar.gz"
     d2l = D2wnloader(url)
     d2l.start()
