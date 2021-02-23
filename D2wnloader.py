@@ -227,6 +227,7 @@ class D2wnloader:
         for start, end in self.__ask_for_work(self.blocks_num):
             worker = self.__give_me_a_worker(start, end)
             self.__whip(worker)
+        # 卡住主进程
         self.__main_thread_done.wait()
 
     def stop(self):
@@ -242,10 +243,11 @@ class D2wnloader:
             self.__whip(worker)
 
     def restart(self):
-        self.__main_thread_done.set() # 先结束 start
         self.stop()
-        self.__main_thread_done.clear() # 一会重新打开 start 需在再次卡住
-        self.start()
+        # 再次召集 worker。不调用 start 的原因是希望他继续卡住主线程。
+        for start, end in self.__ask_for_work(self.blocks_num):
+            worker = self.__give_me_a_worker(start, end)
+            self.__whip(worker)
 
     def __supervise(self):
         """万恶的督导：监视下载速度、进程数；提出整改意见；"""
@@ -267,13 +269,13 @@ class D2wnloader:
                 speed = s / t
                 readable_speed = self.__get_readable_size(speed) # 变成方便阅读的样式
                 percentage = self.__download_record[-1]["size"] / self.file_size * 100
-                status_msg = f"\r[info] {percentage:.1f} % | {readable_speed}/s | {len(self.workers)}/{threading.active_count()} {(time.time()-self.startdlsince):.0f}s          "
+                status_msg = f"\r[info] {percentage:.1f} % | {readable_speed}/s | {len(self.workers)}+{threading.active_count()-len(self.workers)} {(time.time()-self.startdlsince):.0f}s          "
                 sys.stdout.write(status_msg)
                 # 监测下载速度下降
                 maxspeed = max(maxspeed, speed)
                 # 当满足：该监测了 + 未完成 + 速度下降百分比达到了阈值 + 速度低于 1 MB/s
                 if wait_times < 0 and not self.__done.is_set() and (maxspeed - speed) / maxspeed > SPEED_DEGRADATION_PERCENTAGE and speed < 1024*1024:
-                    sys.stdout.write("\n[info] Speed degradation is detected\n[TODO] Restarting, please wait...\n")
+                    sys.stdout.write("\r[info] speed degradation, restarting...          ")
                     self.restart()
                     maxspeed = 0
                     wait_times = WAIT_TIMES_BEFORE_RESTART
@@ -315,3 +317,7 @@ class D2wnloader:
             for filename in self.__get_cache_filenames():
                 os.remove(filename)
 
+if __name__ == "__main__":
+    url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
+    d2l = D2wnloader(url)
+    d2l.start()
