@@ -67,17 +67,11 @@ class D2wnloader:
         self.blocks_num = blocks_num
         # 建立下载目录
         if not os.path.exists(self.download_dir):
-            os.mkdir(self.download_dir)
-        elif os.path.isfile(self.download_dir):
-            os.remove(self.download_dir)
-            os.mkdir(self.download_dir)
+            os.makedirs(self.download_dir)
         # 建立缓存目录
-        self.cache_dir = f".{os.sep}.d2lcache{os.sep}"
+        self.cache_dir = f".{os.sep}d2l{os.sep}.cache{os.sep}"
         if not os.path.exists(self.cache_dir):
-            os.mkdir(self.cache_dir)
-        elif os.path.isfile(self.cache_dir):
-            os.remove(self.cache_dir)
-            os.mkdir(self.cache_dir)
+            os.makedirs(self.cache_dir)
         # 分块下载
         self.startdlsince = time.time()
         self.file_size = self.__get_size()
@@ -87,10 +81,12 @@ class D2wnloader:
         self.__done = threading.Event()
         self.__download_record = []
         threading.Thread(target=self.__supervise).start()
+        # 主进程信号，直到下载结束后解除
+        self.__main_thread_done = threading.Event()
         # 显示基本信息
         readable_size = self.__get_readable_size(self.file_size)
         pathfilename = self.download_dir + self.filename
-        sys.stdout.write(f"----- D2wnloader [v2.0.b6] -----\n[url] {self.url}\n[path] {pathfilename}\n[size] {readable_size}\n")
+        sys.stdout.write(f"----- D2wnloader [v2.0.b7] -----\n[url] {self.url}\n[path] {pathfilename}\n[size] {readable_size}\n")
     
     def __get_size(self):
         with request.urlopen(self.url) as req:
@@ -231,6 +227,7 @@ class D2wnloader:
         for start, end in self.__ask_for_work(self.blocks_num):
             worker = self.__give_me_a_worker(start, end)
             self.__whip(worker)
+        self.__main_thread_done.wait()
 
     def stop(self):
         for w in self.workers:
@@ -245,7 +242,9 @@ class D2wnloader:
             self.__whip(worker)
 
     def restart(self):
+        self.__main_thread_done.set() # 先结束 start
         self.stop()
+        self.__main_thread_done.clear() # 一会重新打开 start 需在再次卡住
         self.start()
 
     def __supervise(self):
@@ -283,8 +282,9 @@ class D2wnloader:
             time.sleep(REFRESH_INTERVAL)
 
     def __sew(self):
+        self.__done.set()
         chunk_size = 10*1024*1024
-        with open(f"{self.download_dir}{self.filename}", "wb") as f:
+        with open(f"{os.path.join(self.download_dir, self.filename)}", "wb") as f:
             for start, _ in self.__get_ranges_from_cache():
                 cache_filename = f"{self.cache_dir}{self.filename}.{start}.d2l"
                 with open(cache_filename, "rb") as cache_file:
@@ -294,12 +294,12 @@ class D2wnloader:
                         f.flush()
                         data = cache_file.read(chunk_size)
         self.clear()
-        self.__done.set()
         sys.stdout.write(f"\n[md5] {self.md5()}\n[info] D2wnloaded\n")
+        self.__main_thread_done.set()
     
     def md5(self):
         chunk_size = 1024*1024
-        filename = f"{self.download_dir}{self.filename}"
+        filename = f"{os.path.join(self.download_dir, self.filename)}"
         md5 = hashlib.md5()
         with open(filename, "rb") as f:
             data = f.read(chunk_size)
@@ -315,8 +315,3 @@ class D2wnloader:
             for filename in self.__get_cache_filenames():
                 os.remove(filename)
 
-if __name__ == "__main__":
-    # url = "https://mirrors.tuna.tsinghua.edu.cn/linuxmint-cd/stable/20.1/linuxmint-20.1-cinnamon-64bit.iso"
-    url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
-    d2l = D2wnloader(url)
-    d2l.start()
