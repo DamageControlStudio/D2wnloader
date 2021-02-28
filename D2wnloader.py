@@ -2,8 +2,15 @@
 import threading, time
 from urllib import request, parse
 import requests
-import os, sys, glob
+import os
+import sys
+import glob
 import hashlib
+import ssl
+
+# 忽略 https 警告
+ssl._create_default_https_context = ssl._create_unverified_context
+requests.packages.urllib3.disable_warnings()
 
 class DLWorker:
     def __init__(self, name:str, url:str, range_start, range_end, cache_dir, finish_callback):
@@ -20,16 +27,16 @@ class DLWorker:
     def __run(self):
         chunk_size = 1*1024 # 1 kb
         headers = {'Range': f'Bytes={self.range_curser}-{self.range_end}', 'Accept-Encoding': '*'}
-        req = requests.get(self.url, stream=True, headers=headers)
+        req = requests.get(self.url, stream=True, verify=False, headers=headers)
         with open(self.cache_filename, "wb") as cache:
             for chunk in req.iter_content(chunk_size=chunk_size):
-                # self.continue_event.wait()
                 if self.terminate_flag:
                     break
                 cache.write(chunk)
                 self.range_curser += len(chunk)
         if not self.terminate_flag: # 只有正常退出才能标记 DONE，但是三条途径都经过此处
             self.FINISH_TYPE = "DONE"
+        req.close()
         self.finish_callback(self) # 执行回调函数，根据 FINISH_TYPE 结局不同
 
     def start(self):
@@ -65,33 +72,41 @@ class D2wnloader:
         self.filename = filename
         self.download_dir = download_dir
         self.blocks_num = blocks_num
-        # 建立下载目录
-        if not os.path.exists(self.download_dir):
-            os.makedirs(self.download_dir)
-        # 建立缓存目录
-        self.cache_dir = f".{os.sep}d2l{os.sep}.cache{os.sep}"
-        if not os.path.exists(self.cache_dir):
-            os.makedirs(self.cache_dir)
-        # 分块下载
-        self.startdlsince = time.time()
+        self.__bad_url_flag = False
         self.file_size = self.__get_size()
-        self.workers = [] # 装载 DLWorker
-        self.AAEK = self.__get_AAEK_from_cache() # 需要确定 self.file_size 和 self.block_num
-        # 测速
-        self.__done = threading.Event()
-        self.__download_record = []
-        threading.Thread(target=self.__supervise).start()
-        # 主进程信号，直到下载结束后解除
-        self.__main_thread_done = threading.Event()
-        # 显示基本信息
-        readable_size = self.__get_readable_size(self.file_size)
-        pathfilename = self.download_dir + self.filename
-        sys.stdout.write(f"----- D2wnloader [v2.0.b7] -----\n[url] {self.url}\n[path] {pathfilename}\n[size] {readable_size}\n")
+        if not self.__bad_url_flag:
+            # 建立下载目录
+            if not os.path.exists(self.download_dir):
+                os.makedirs(self.download_dir)
+            # 建立缓存目录
+            self.cache_dir = f".{os.sep}d2l{os.sep}.cache{os.sep}"
+            if not os.path.exists(self.cache_dir):
+                os.makedirs(self.cache_dir)
+            # 分块下载
+            self.startdlsince = time.time()
+            self.workers = [] # 装载 DLWorker
+            self.AAEK = self.__get_AAEK_from_cache() # 需要确定 self.file_size 和 self.block_num
+            # 测速
+            self.__done = threading.Event()
+            self.__download_record = []
+            threading.Thread(target=self.__supervise).start()
+            # 主进程信号，直到下载结束后解除
+            self.__main_thread_done = threading.Event()
+            # 显示基本信息
+            readable_size = self.__get_readable_size(self.file_size)
+            pathfilename = os.path.join(self.download_dir, self.filename)
+            sys.stdout.write(f"----- D2wnloader [v2.0.b8] -----\n[url] {self.url}\n[path] {pathfilename}\n[size] {readable_size}\n")
     
     def __get_size(self):
-        with request.urlopen(self.url) as req:
+        try:
+            req = request.urlopen(self.url)
             content_length = req.headers["Content-Length"]
+            req.close()
             return int(content_length)
+        except Exception as err:
+            self.__bad_url_flag = True
+            print(f"[Error] {err}")
+            return 0
 
     def __get_readable_size(self, size):
         units = ["B", "KB", "MB", "GB", "TB", "PB"]
@@ -223,12 +238,13 @@ class D2wnloader:
 
     def start(self):
         # TODO 尝试整理缓存文件夹内的相关文件
-        # 召集 worker
-        for start, end in self.__ask_for_work(self.blocks_num):
-            worker = self.__give_me_a_worker(start, end)
-            self.__whip(worker)
-        # 卡住主进程
-        self.__main_thread_done.wait()
+        if not self.__bad_url_flag:
+            # 召集 worker
+            for start, end in self.__ask_for_work(self.blocks_num):
+                worker = self.__give_me_a_worker(start, end)
+                self.__whip(worker)
+            # 卡住主进程
+            self.__main_thread_done.wait()
 
     def stop(self):
         for w in self.workers:
@@ -319,5 +335,5 @@ class D2wnloader:
 
 if __name__ == "__main__":
     url = "https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe"
-    d2l = D2wnloader(url)
-    d2l.start()
+    dl = D2wnloader(url)
+    dl.start()
