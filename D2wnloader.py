@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import threading, time
-from urllib import request, parse
+from urllib import parse
 import requests
 import os
 import sys
@@ -14,7 +14,7 @@ requests.packages.urllib3.disable_warnings()
 
 
 class DLWorker:
-    def __init__(self, name: str, url: str, range_start, range_end, cache_dir, finish_callback):
+    def __init__(self, name: str, url: str, range_start, range_end, cache_dir, finish_callback, user_agent):
         self.name = name
         self.url = url
         self.cache_filename = os.path.join(cache_dir, name + ".d2l")
@@ -24,10 +24,15 @@ class DLWorker:
         self.finish_callback = finish_callback  # 通知调用 DLWorker 的地方
         self.terminate_flag = False  # 该标志用于终结自己
         self.FINISH_TYPE = ""  # DONE 完成工作, HELP 需要帮忙, RETIRE 不干了
+        self.user_agent = user_agent
 
     def __run(self):
         chunk_size = 1 * 1024  # 1 kb
-        headers = {'Range': f'Bytes={self.range_curser}-{self.range_end}', 'Accept-Encoding': '*'}
+        headers = {
+            'User-Agent': self.user_agent, 
+            'Range': f'Bytes={self.range_curser}-{self.range_end}', 
+            'Accept-Encoding': '*'
+        }
         req = requests.get(self.url, stream=True, verify=False, headers=headers)
         with open(self.cache_filename, "wb") as cache:
             for chunk in req.iter_content(chunk_size=chunk_size):
@@ -69,6 +74,7 @@ class D2wnloader:
     def __init__(self, url: str, download_dir: str = f".{os.sep}d2l{os.sep}", blocks_num: int = 8):
         assert 0 <= blocks_num <= 32
         self.url = url
+        self.user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:97.0) Gecko/20100101 Firefox/97.0'
         filename = self.url.split("/")[-1]
         filename = parse.unquote(filename)
         self.filename = filename
@@ -100,7 +106,12 @@ class D2wnloader:
 
     def __get_size(self):
         try:
-            req = request.urlopen(self.url)
+            # req = request.urlopen(self.url)
+            # content_length = req.headers["Content-Length"]
+            # req.close()
+            # return int(content_length)
+            headers = {'User-Agent': self.user_agent}
+            req = requests.get(self.url, headers=headers, stream=True)
             content_length = req.headers["Content-Length"]
             req.close()
             return int(content_length)
@@ -211,7 +222,8 @@ class D2wnloader:
     def __give_me_a_worker(self, start, end):
         worker = DLWorker(name=f"{self.filename}.{start}",
                           url=self.url, range_start=start, range_end=end, cache_dir=self.cache_dir,
-                          finish_callback=self.__on_dlworker_finish)
+                          finish_callback=self.__on_dlworker_finish,
+                          user_agent=self.user_agent)
         return worker
 
     def __whip(self, worker: DLWorker):
