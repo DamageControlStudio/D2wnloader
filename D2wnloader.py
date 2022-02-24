@@ -263,6 +263,7 @@ class D2wnloader:
             w.retire()
         while len(self.workers) != 0:
             time.sleep(0.5)
+        self.AAEK = self.__get_AAEK_from_cache()
 
     def workaholic(self, n=1):
         """九九六工作狂。如果能申请到，就地解析；申请不到，__give_me_a_worker 会尝试将一个 worker 的工作一分为二；"""
@@ -302,11 +303,16 @@ class D2wnloader:
                 # 监测下载速度下降
                 maxspeed = max(maxspeed, speed)
                 EPSILON = 1e-5  # 表示很小的值，避免除以零
-                # 当满足：该监测了 + 未完成 + 速度下降百分比达到了阈值 + 速度低于 1 MB/s
-                if wait_times < 0 and \
-                        not self.__done.is_set() and \
-                        (maxspeed - speed + EPSILON) / (maxspeed + EPSILON) > SPEED_DEGRADATION_PERCENTAGE and \
-                        speed < 1024 * 1024:
+                # 构建几个表达式用于简化逻辑，首先是前提条件
+                time_over = wait_times < 0  # 容忍时间到了
+                not_finished = not self.__done.is_set()  # 尚未完成下载
+                # 情况 1. 速度在 1MB/s 以下，并且下降明显（如果速度在 1MB/s 以上可以先不管）
+                speed_drops_significantly = (maxspeed - speed + EPSILON) / (maxspeed + EPSILON) > SPEED_DEGRADATION_PERCENTAGE
+                speed_under_threshold = speed < 1024 * 1024  # 1MB
+                scene_1 = speed_drops_significantly and speed_under_threshold
+                # 情况 2. 速度很慢
+                scene_2 = speed < 16 * 1024  # 16KB
+                if time_over and not_finished and (scene_1 or scene_2):
                     self.__whistleblower("\r[info] speed degradation, restarting...")
                     self.restart()
                     maxspeed = 0
