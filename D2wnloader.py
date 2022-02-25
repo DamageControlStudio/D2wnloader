@@ -41,7 +41,7 @@ class DLWorker:
         # Client error responses (400–499)
         # Server error responses (500–599)
         ####################################
-        if 200 <= req.status_code <= 399:
+        if 200 <= req.status_code <= 299:
             with open(self.cache_filename, "wb") as cache:
                 for chunk in req.iter_content(chunk_size=chunk_size):
                     if self.terminate_flag:
