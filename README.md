@@ -4,7 +4,11 @@
 
 由于手机尤其是 iPhone 根本没有下载工具，官方不允许这种东西上架。
 
-因此考虑用 Python 写了这个下载器，当然，想在 iPhone 上跑脚本你需要先安装 Pythonista 或者类似的东西。
+因此考虑用 Python 写了这个下载器，当然，想在 iPhone 上跑脚本你需要先安装 Pythonista 或者类似的东西。  
+
+开源的 a-shell 很好用的，如果用 shortcuts 调用时需要点小技巧：先打开应用，等待 1 秒，再执行你的 py 程序，给点准备时间。  
+
+应用程序 play.js 在 iOS 上似乎也不错。
 
 ## D1wnloader
 
