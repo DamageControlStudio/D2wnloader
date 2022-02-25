@@ -47,3 +47,12 @@ AAEK 据说是某五笔输入法【未开垦】的编码，无从考证。格式
 d2l = D2wnloader("https://qd.myapp.com/myapp/qqteam/pcqq/QQ9.0.8_3.exe")
 d2l.start()
 ```
+
+### 补充说明
+我对 http 协议还在间断而不系统地学习中；我也不太会用 GitHub 忘见谅。
+近期在降低 Docker 内存占用研究时发现了 D2w 的几个问题，现已修复：
+
+- restart 会“卡住”没有接盘侠；
+- 服务器给出的 5xx 错误也会被写入文件；
+
+树莓派 Zero 搭建下载测试环境（等于服务器性能很差）下载全是 \x00 的文件时发现之前并未检查 status code
