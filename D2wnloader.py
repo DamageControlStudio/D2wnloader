@@ -34,12 +34,20 @@ class DLWorker:
             'Accept-Encoding': '*'
         }
         req = requests.get(self.url, stream=True, verify=False, headers=headers)
-        with open(self.cache_filename, "wb") as cache:
-            for chunk in req.iter_content(chunk_size=chunk_size):
-                if self.terminate_flag:
-                    break
-                cache.write(chunk)
-                self.range_curser += len(chunk)
+        ####################################
+        # Informational responses (100–199)
+        # Successful responses (200–299)
+        # Redirection messages (300–399)
+        # Client error responses (400–499)
+        # Server error responses (500–599)
+        ####################################
+        if 200 <= req.status_code <= 399:
+            with open(self.cache_filename, "wb") as cache:
+                for chunk in req.iter_content(chunk_size=chunk_size):
+                    if self.terminate_flag:
+                        break
+                    cache.write(chunk)
+                    self.range_curser += len(chunk)
         if not self.terminate_flag:  # 只有正常退出才能标记 DONE，但是三条途径都经过此处
             self.FINISH_TYPE = "DONE"
         req.close()
